@@ -1,4 +1,4 @@
-const { Configuration, OpenAIApi } = require("openai");
+const { OpenAIApi, Configuration } = require("openai");
 
 // Configuración de OpenAI
 const configuration = new Configuration({
@@ -17,7 +17,7 @@ exports.handler = async function (event) {
       };
     }
 
-    // Realiza la llamada al asistente preconfigurado
+    // Realiza la llamada al asistente
     const response = await openai.createChatCompletion({
       model: "gpt-4",
       messages: [{ role: "user", content: message }],
