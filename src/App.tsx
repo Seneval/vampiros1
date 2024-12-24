@@ -1,25 +1,16 @@
 import React, { useState } from "react";
 
 const App: React.FC = () => {
-  const [trust, setTrust] = useState(5); // Nivel inicial de confianza
-  const [npcReply, setNpcReply] = useState("¿Quién eres? No confío en ti."); // Respuesta inicial del NPC
-  const [userMessage, setUserMessage] = useState(""); // Mensaje del usuario
-  const [gameOver, setGameOver] = useState(false); // Estado del juego
+  const [trust, setTrust] = useState(5); // Initial trust level
+  const [npcReply, setNpcReply] = useState("Who are you? I don't trust you."); // NPC's response
+  const [userMessage, setUserMessage] = useState(""); // User's input
+  const [gameOver, setGameOver] = useState(false); // Game state
 
-  // Cambia la imagen según el nivel de confianza
-  const getImage = () => {
-    if (trust <= 3) return "/images/trust-1-3.png";
-    if (trust <= 6) return "/images/trust-5.png";
-    if (trust <= 8) return "/images/trust-7-8.png";
-    return "/images/trust-9-10.png";
-  };
-
-  // Maneja el envío del mensaje
   const handleSendMessage = async () => {
     if (!userMessage.trim() || gameOver) return;
 
     try {
-      // Paso 1: Envía el mensaje al asistente
+      // Step 1: Send the user's message to the assistant
       const response = await fetch("/.netlify/functions/sendMessage", {
         method: "POST",
         body: JSON.stringify({ message: userMessage }),
@@ -27,40 +18,47 @@ const App: React.FC = () => {
       });
 
       const data = await response.json();
-      setNpcReply(data.reply); // Actualiza la respuesta del NPC
+      setNpcReply(data.reply); // Update the NPC's reply
 
-      // Paso 2: Detecta la intención y ajusta la confianza
-      const intentResponse = await fetch("/.netlify/functions/detectIntent", {
+      // Step 2: Check trust level adjustment
+      const trustResponse = await fetch("/.netlify/functions/detectIntent", {
         method: "POST",
         body: JSON.stringify({ reply: data.reply, currentTrust: trust }),
         headers: { "Content-Type": "application/json" },
       });
 
-      const intentData = await intentResponse.json();
-      setTrust(intentData.newTrust); // Actualiza la confianza
+      const trustData = await trustResponse.json();
+      setTrust(trustData.newTrust); // Update trust
 
-      // Verifica si el juego ha terminado
-      if (intentData.newTrust >= 10) {
+      // End game conditions
+      if (trustData.newTrust >= 10) {
         setGameOver(true);
-        setNpcReply("¡Me convenciste! Puedes entrar.");
-      } else if (intentData.newTrust <= 0) {
+        setNpcReply("You convinced me! You may enter.");
+      } else if (trustData.newTrust <= 0) {
         setGameOver(true);
-        setNpcReply("No confío en ti. Nunca entrarás.");
+        setNpcReply("I don't trust you. You will never enter.");
       }
     } catch (error) {
-      console.error("Error enviando mensaje:", error);
-      setNpcReply("Hubo un problema. Intenta de nuevo.");
+      console.error("Error handling message:", error);
+      setNpcReply("There was a problem. Please try again.");
     }
 
-    setUserMessage(""); // Limpia el input
+    setUserMessage(""); // Clear input
+  };
+
+  const getImage = () => {
+    if (trust <= 3) return "/images/trust-1-3.png";
+    if (trust <= 6) return "/images/trust-5.png";
+    if (trust <= 8) return "/images/trust-7-8.png";
+    return "/images/trust-9-10.png";
   };
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-gray-800 text-white">
       <h1 className="text-4xl font-bold mb-4">Vampyr Game</h1>
-      <img src={getImage()} alt="Estado de Confianza" className="w-1/3 mb-4" />
-      <p className="text-xl mb-4">Nivel de confianza: {trust}</p>
-      <p className="text-lg mb-4">NPC dice: "{npcReply}"</p>
+      <img src={getImage()} alt="Trust Level" className="w-1/3 mb-4" />
+      <p className="text-xl mb-4">Trust Level: {trust}</p>
+      <p className="text-lg mb-4">NPC says: "{npcReply}"</p>
 
       {!gameOver && (
         <div className="flex flex-col items-center gap-4">
@@ -68,21 +66,21 @@ const App: React.FC = () => {
             type="text"
             value={userMessage}
             onChange={(e) => setUserMessage(e.target.value)}
-            placeholder="Escribe tu mensaje..."
+            placeholder="Type your message..."
             className="p-2 w-2/3 bg-gray-700 border border-gray-600 rounded text-white"
           />
           <button
             onClick={handleSendMessage}
             className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-400"
           >
-            Enviar
+            Send
           </button>
         </div>
       )}
 
       {gameOver && (
         <p className="text-lg mt-4">
-          El juego ha terminado. Recarga la página para intentarlo de nuevo.
+          Game over. Reload the page to play again.
         </p>
       )}
     </div>

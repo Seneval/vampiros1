@@ -1,40 +1,38 @@
-const { OpenAIApi, Configuration } = require("openai");
+const { Configuration, OpenAIApi } = require("openai");
 
-// Configuración de OpenAI
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // Asegúrate de que esta clave esté configurada en Netlify
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in Netlify
 });
 const openai = new OpenAIApi(configuration);
 
 exports.handler = async function (event) {
   try {
-    const { message } = JSON.parse(event.body); // Asegúrate de que el cuerpo incluye un mensaje
+    const { message } = JSON.parse(event.body); // Parse incoming user message
 
     if (!message || typeof message !== "string") {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "El mensaje es inválido o está vacío" }),
+        body: JSON.stringify({ error: "Invalid or empty message" }),
       };
     }
 
-    // Realiza la llamada al asistente
+    // Call OpenAI assistant
     const response = await openai.createChatCompletion({
       model: "gpt-4",
-      messages: [{ role: "user", content: message }],
+      messages: [{ role: "user", content: message }], // Interaction
     });
 
-    const assistantReply = response.data.choices[0].message.content;
+    const reply = response.data.choices[0].message.content;
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ reply: assistantReply }),
+      body: JSON.stringify({ reply }), // Send the reply back
     };
   } catch (error) {
-    console.error("Error en sendMessage.js:", error);
-
+    console.error("Error in sendMessage.js:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error interno al procesar el mensaje" }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
