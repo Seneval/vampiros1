@@ -1,13 +1,14 @@
 const { Configuration, OpenAIApi } = require("openai");
 
+// Configuración de OpenAI
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY, // Asegúrate de que esta clave esté configurada en Netlify
 });
 const openai = new OpenAIApi(configuration);
 
 exports.handler = async function (event) {
   try {
-    const { message } = JSON.parse(event.body);
+    const { message } = JSON.parse(event.body); // Asegúrate de que el cuerpo incluye un mensaje
 
     if (!message || typeof message !== "string") {
       return {
@@ -16,10 +17,10 @@ exports.handler = async function (event) {
       };
     }
 
+    // Realiza la llamada al asistente preconfigurado
     const response = await openai.createChatCompletion({
       model: "gpt-4",
       messages: [{ role: "user", content: message }],
-      functions: [{ name: "asst_u3dw8HAqJBB4XxaWVu6mqe9G" }],
     });
 
     const assistantReply = response.data.choices[0].message.content;
@@ -30,6 +31,7 @@ exports.handler = async function (event) {
     };
   } catch (error) {
     console.error("Error en sendMessage.js:", error);
+
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Error interno al procesar el mensaje" }),
