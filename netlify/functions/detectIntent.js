@@ -1,48 +1,33 @@
-const { Configuration, OpenAIApi } = require("openai");
-
-// Configuración de OpenAI
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // La clave API se configura como variable de entorno en Netlify
-});
-const openai = new OpenAIApi(configuration);
-
 exports.handler = async function (event) {
-  try {
-    // Parsear el cuerpo de la solicitud
-    const { message } = JSON.parse(event.body);
-
-    // Verificar que el mensaje existe
-    if (!message || typeof message !== "string") {
+    try {
+      const { reply, currentTrust } = JSON.parse(event.body);
+  
+      if (!reply || typeof reply !== "string") {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "La respuesta es inválida o está vacía" }),
+        };
+      }
+  
+      // Lógica simple para evaluar la intención
+      let newTrust = currentTrust;
+  
+      if (reply.toLowerCase().includes("confío") || reply.toLowerCase().includes("convenciste")) {
+        newTrust = Math.min(10, currentTrust + 2); // Incrementa la confianza
+      } else if (reply.toLowerCase().includes("desconfío") || reply.toLowerCase().includes("no confío")) {
+        newTrust = Math.max(0, currentTrust - 2); // Reduce la confianza
+      }
+  
       return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "El mensaje es inválido o está vacío" }),
+        statusCode: 200,
+        body: JSON.stringify({ newTrust }),
+      };
+    } catch (error) {
+      console.error("Error en detectIntent.js:", error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Error interno al procesar la intención" }),
       };
     }
-
-    // Llamada al asistente preconfigurado
-    const response = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }],
-      functions: [{ name: "asst_u3dw8HAqJBB4XxaWVu6mqe9G" }], // Identificador del asistente
-    });
-
-    // Extraer la respuesta del asistente
-    const npcReply = response.data.choices[0].message.content;
-
-    // Respuesta al frontend
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        reply: npcReply,
-      }),
-    };
-  } catch (error) {
-    console.error("Error en detectIntent.js:", error);
-
-    // Respuesta de error al frontend
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Error interno al procesar la solicitud" }),
-    };
-  }
-};
+  };
+  

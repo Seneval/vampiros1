@@ -1,37 +1,38 @@
-
-
 const { Configuration, OpenAIApi } = require("openai");
 
-// Configuración de OpenAI
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // La clave se configura en Netlify
+  apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
 exports.handler = async function (event) {
-  const { message } = JSON.parse(event.body); // Recibe el mensaje del usuario
-
   try {
-    // Llama a OpenAI para obtener la respuesta del NPC
+    const { message } = JSON.parse(event.body);
+
+    if (!message || typeof message !== "string") {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "El mensaje es inválido o está vacío" }),
+      };
+    }
+
     const response = await openai.createChatCompletion({
       model: "gpt-4",
-      messages: [
-        { role: "system", content: "Eres un NPC en un juego donde decides si confiar en un vampiro." },
-        { role: "user", content: message },
-      ],
+      messages: [{ role: "user", content: message }],
+      functions: [{ name: "asst_u3dw8HAqJBB4XxaWVu6mqe9G" }],
     });
 
-    // Devuelve la respuesta generada
+    const assistantReply = response.data.choices[0].message.content;
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ reply: response.data.choices[0].message.content }),
+      body: JSON.stringify({ reply: assistantReply }),
     };
   } catch (error) {
     console.error("Error en sendMessage.js:", error);
-
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Error al interactuar con OpenAI" }),
+      body: JSON.stringify({ error: "Error interno al procesar el mensaje" }),
     };
   }
 };
