@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const App: React.FC = () => {
   const [trust, setTrust] = useState(5); // Nivel inicial de confianza
-  const [npcReply, setNpcReply] = useState("¿Quién eres? No confío en ti."); // Respuesta del NPC
+  const [npcReply, setNpcReply] = useState("¿Quién eres? No confío en ti."); // Respuesta inicial del NPC
   const [userMessage, setUserMessage] = useState(""); // Mensaje del usuario
 
   // Cambia la imagen según el nivel de confianza
@@ -13,25 +13,24 @@ const App: React.FC = () => {
     return '/images/trust-9-10.png';
   };
 
-  // Simula el envío del mensaje al NPC y la actualización del trust
-  const handleSendMessage = () => {
+  // Enviar mensaje al backend para procesar la intención
+  const handleSendMessage = async () => {
     if (!userMessage) return;
 
-    // Lógica simple para cambiar el trust según el mensaje
-    let newTrust = trust;
-    if (userMessage.toLowerCase().includes("por favor")) {
-      newTrust = Math.min(10, trust + 2); // Aumenta el trust
-      setNpcReply("Bueno, eso suena convincente.");
-    } else if (userMessage.toLowerCase().includes("invítame")) {
-      newTrust = Math.min(10, trust + 1); // Aumenta ligeramente el trust
-      setNpcReply("Hmm, tal vez pueda confiar en ti.");
-    } else {
-      newTrust = Math.max(0, trust - 1); // Reduce el trust
-      setNpcReply("No estoy seguro de confiar en ti...");
-    }
+    try {
+      const response = await fetch("/.netlify/functions/detectIntent", {
+        method: "POST",
+        body: JSON.stringify({ message: userMessage, trust }),
+        headers: { "Content-Type": "application/json" },
+      });
 
-    setTrust(newTrust);
-    setUserMessage(""); // Limpia el input
+      const data = await response.json();
+      setNpcReply(data.reply); // Actualiza la respuesta del NPC
+      setTrust(data.trust); // Actualiza el nivel de confianza
+      setUserMessage(""); // Limpia el input del usuario
+    } catch (error) {
+      console.error("Error enviando mensaje:", error);
+    }
   };
 
   return (
